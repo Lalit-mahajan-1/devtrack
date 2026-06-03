@@ -10,7 +10,7 @@ import {
 } from "@/lib/metrics-cache";
 import { getAccountToken } from "@/lib/github-accounts";
 import { resolveAppUser, type AppUser } from "@/lib/resolve-user";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin, isSupabaseAdminAvailable } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -35,19 +35,23 @@ export async function GET(req: NextRequest) {
   // Load excluded organizations config
   let excludedOrgs: string[] = [];
   let userRow: AppUser | null = null;
-  if (session.githubId) {
+  if (isSupabaseAdminAvailable && session.githubId) {
     userRow = await resolveAppUser(session.githubId, session.githubLogin);
     if (userRow) {
-      const { data: dbUser } = await supabaseAdmin
-        .from("users")
-        .select("organizations_config")
-        .eq("id", userRow.id)
-        .single();
+      try {
+        const { data: dbUser } = await supabaseAdmin
+          .from("users")
+          .select("organizations_config")
+          .eq("id", userRow.id)
+          .single();
 
-      const orgsConfig = (dbUser?.organizations_config || {}) as Record<string, boolean>;
-      excludedOrgs = Object.entries(orgsConfig)
-        .filter(([_, enabled]) => enabled === false)
-        .map(([org]) => org);
+        const orgsConfig = (dbUser?.organizations_config || {}) as Record<string, boolean>;
+        excludedOrgs = Object.entries(orgsConfig)
+          .filter(([_, enabled]) => enabled === false)
+          .map(([org]) => org);
+      } catch (err) {
+        console.error("Failed to load excluded orgs config:", err);
+      }
     }
   }
 

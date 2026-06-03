@@ -13,7 +13,7 @@ import {
   metricsCacheKey,
   withMetricsCache,
 } from "@/lib/metrics-cache";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin, isSupabaseAdminAvailable } from "@/lib/supabase";
 import { resolveAppUser } from "@/lib/resolve-user";
 import { normalizeGitHubUsername } from "@/lib/validate-github-username";
 
@@ -393,17 +393,21 @@ export async function GET(req: NextRequest) {
 
   // Load excluded organizations config
   let excludedOrgs: string[] = [];
-  if (session.githubId) {
-    const { data: dbUser } = await supabaseAdmin
-      .from("users")
-      .select("organizations_config")
-      .eq("github_id", session.githubId)
-      .single();
+  if (isSupabaseAdminAvailable && session.githubId) {
+    try {
+      const { data: dbUser } = await supabaseAdmin
+        .from("users")
+        .select("organizations_config")
+        .eq("github_id", session.githubId)
+        .single();
 
-    const orgsConfig = (dbUser?.organizations_config || {}) as Record<string, boolean>;
-    excludedOrgs = Object.entries(orgsConfig)
-      .filter(([_, enabled]) => enabled === false)
-      .map(([org]) => org);
+      const orgsConfig = (dbUser?.organizations_config || {}) as Record<string, boolean>;
+      excludedOrgs = Object.entries(orgsConfig)
+        .filter(([_, enabled]) => enabled === false)
+        .map(([org]) => org);
+    } catch (err) {
+      console.error("Failed to load excluded orgs config:", err);
+    }
   }
 
   // Compare mode path: explicitly fetch contributions for a target username.

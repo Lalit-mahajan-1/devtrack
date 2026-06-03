@@ -16,9 +16,10 @@ const WINDOW_SECONDS = 60;
    limits apply during local testing only.
    ==========================================
    ============================================================ */
-const AUTHENTICATED_LIMIT = isDev ? 5000 : 60;
-const ANONYMOUS_LIMIT = isDev ? 1000 : 10;
-const LOGIN_LIMIT = isDev ? 100 : 5;
+const isTest = isDev || process.env.CI === "true" || process.env.NODE_ENV === "test";
+const AUTHENTICATED_LIMIT = isTest ? 5000 : 60;
+const ANONYMOUS_LIMIT = isTest ? 1000 : 10;
+const LOGIN_LIMIT = isTest ? 100 : 5;
 
 const memoryBuckets = new Map<string, number[]>();
 
