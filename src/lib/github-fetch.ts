@@ -151,7 +151,8 @@ export async function githubFetch<T>(
  */
 export async function githubGraphQL<T>(
   query: string,
-  token: string
+  token: string,
+  variables?: Record<string, unknown>
 ): Promise<T> {
   const MAX_RETRIES = 2;
 
@@ -162,7 +163,7 @@ export async function githubGraphQL<T>(
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, variables }),
       cache: "no-store",
     });
 
